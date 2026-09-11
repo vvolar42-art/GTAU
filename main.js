@@ -1,245 +1,226 @@
-// --- 1. CONFIGURACIÓN DEL MOTOR 3D ---
+// --- 1. CONFIGURACIÓN DEL MOTOR Y MUNDO ---
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87CEEB);
-scene.fog = new THREE.Fog(0x87CEEB, 100, 400); // Niebla para rendimiento y realismo
+// Niebla mucho más lejana (menos niebla)
+scene.fog = new THREE.Fog(0x87CEEB, 800, 2500); 
 
-const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-const renderer = new THREE.WebGLRenderer({ antialias: false }); // Antialias false para móviles
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 3000);
+const renderer = new THREE.WebGLRenderer({ antialias: false });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
 
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
 scene.add(ambientLight);
 const sunLight = new THREE.DirectionalLight(0xffffff, 0.8);
-sunLight.position.set(200, 300, 100);
+sunLight.position.set(500, 1000, 500);
 sunLight.castShadow = true;
-sunLight.shadow.camera.left = -300; sunLight.shadow.camera.right = 300;
-sunLight.shadow.camera.top = 300; sunLight.shadow.camera.bottom = -300;
 scene.add(sunLight);
 
-// --- 2. GENERACIÓN DEL MUNDO (Leyendo la lógica del JSON) ---
-// Simulamos la carga del JSON para que funcione directamente sin servidor local
-const mapData = {
-    "mundo": { "tamano": 1000, "limite_agua": 480 },
-    "biomas": [
-        { "tipo": "ciudad", "x": 100, "z": 100, "radio": 80, "densidad": 50 },
-        { "tipo": "ciudad", "x": -200, "z": -150, "radio": 60, "densidad": 40 },
-        { "tipo": "ciudad", "x": 250, "z": -200, "radio": 70, "densidad": 35 },
-        { "tipo": "bosque", "x": -250, "z": 100, "radio": 100, "densidad": 80 },
-        { "tipo": "desierto", "x": 200, "z": -300, "radio": 150 },
-        { "tipo": "aeropuerto", "x": 0, "z": 300, "largo": 200, "ancho": 20 }
-    ]
-};
-
-// Isla Principal
-const groundGeo = new THREE.PlaneGeometry(mapData.mundo.tamano, mapData.mundo.tamano);
-const groundMat = new THREE.MeshLambertMaterial({ color: 0x3b5e2b }); // Verde pasto
+// Mundo más grande (4000x4000)
+const groundGeo = new THREE.PlaneGeometry(4000, 4000);
+const groundMat = new THREE.MeshLambertMaterial({ color: 0x3b5e2b });
 const ground = new THREE.Mesh(groundGeo, groundMat);
 ground.rotation.x = -Math.PI / 2;
 ground.receiveShadow = true;
 scene.add(ground);
 
-// Océano (Límites)
-const oceanGeo = new THREE.PlaneGeometry(3000, 3000);
-const oceanMat = new THREE.MeshBasicMaterial({ color: 0x1c4a75 });
-const ocean = new THREE.Mesh(oceanGeo, oceanMat);
-ocean.rotation.x = -Math.PI / 2;
-ocean.position.y = -2;
-scene.add(ocean);
+// --- 2. OBJETOS DEL JUEGO (Jugador y Vehículos) ---
 
-// Arrays para físicas y tráfico
-const obstaculos = [];
-const vehiculosIA = [];
+// El Jugador (A pie) - Cilindro amarillo
+const playerGeo = new THREE.CylinderGeometry(0.5, 0.5, 2, 8);
+const playerMat = new THREE.MeshLambertMaterial({ color: 0xffcc00 });
+const player = new THREE.Mesh(playerGeo, playerMat);
+player.position.set(0, 1, 0); // Empieza en el centro
+player.castShadow = true;
+scene.add(player);
 
-// Generador Procedural basado en el mapa
-const materialEdificio = new THREE.MeshLambertMaterial({ color: 0x888888 });
-const materialArbol = new THREE.MeshLambertMaterial({ color: 0x1e4a1a });
-const materialDesierto = new THREE.MeshLambertMaterial({ color: 0xc2b280 });
-const materialPista = new THREE.MeshLambertMaterial({ color: 0x333333 });
+// Lista de vehículos interactuables
+const vehiculos = [];
 
-mapData.biomas.forEach(bioma => {
-    if (bioma.tipo === "ciudad") {
-        const asfaltoGeo = new THREE.PlaneGeometry(bioma.radio * 2, bioma.radio * 2);
-        const asfalto = new THREE.Mesh(asfaltoGeo, materialPista);
-        asfalto.rotation.x = -Math.PI / 2;
-        asfalto.position.set(bioma.x, 0.1, bioma.z);
-        scene.add(asfalto);
-
-        for (let i = 0; i < bioma.densidad; i++) {
-            const h = Math.random() * 30 + 10; // Altura de edificios
-            const bGeo = new THREE.BoxGeometry(10, h, 10);
-            const edificio = new THREE.Mesh(bGeo, materialEdificio);
-            edificio.position.set(
-                bioma.x + (Math.random() * bioma.radio * 2 - bioma.radio),
-                h / 2,
-                bioma.z + (Math.random() * bioma.radio * 2 - bioma.radio)
-            );
-            edificio.castShadow = true;
-            edificio.receiveShadow = true;
-            scene.add(edificio);
-            obstaculos.push(edificio);
-        }
-    } else if (bioma.tipo === "bosque") {
-        for (let i = 0; i < bioma.densidad; i++) {
-            const tGeo = new THREE.ConeGeometry(3, 10, 5);
-            const arbol = new THREE.Mesh(tGeo, materialArbol);
-            arbol.position.set(
-                bioma.x + (Math.random() * bioma.radio * 2 - bioma.radio),
-                5,
-                bioma.z + (Math.random() * bioma.radio * 2 - bioma.radio)
-            );
-            arbol.castShadow = true;
-            scene.add(arbol);
-        }
-    } else if (bioma.tipo === "desierto") {
-        const arenaGeo = new THREE.PlaneGeometry(bioma.radio * 2, bioma.radio * 2);
-        const arena = new THREE.Mesh(arenaGeo, materialDesierto);
-        arena.rotation.x = -Math.PI / 2;
-        arena.position.set(bioma.x, 0.2, bioma.z);
-        scene.add(arena);
-    } else if (bioma.tipo === "aeropuerto") {
-        const pistaGeo = new THREE.PlaneGeometry(bioma.ancho, bioma.largo);
-        const pista = new THREE.Mesh(pistaGeo, materialPista);
-        pista.rotation.x = -Math.PI / 2;
-        pista.position.set(bioma.x, 0.3, bioma.z);
-        scene.add(pista);
-    }
-});
-
-// Tráfico IA Aleatorio (Coches simulados moviéndose)
-for(let i=0; i<20; i++){
-    const iaCarGeo = new THREE.BoxGeometry(2, 1.5, 4);
-    const iaCarMat = new THREE.MeshLambertMaterial({ color: Math.random() * 0xffffff });
-    const iaCar = new THREE.Mesh(iaCarGeo, iaCarMat);
-    iaCar.position.set((Math.random() - 0.5) * 400, 0.75, (Math.random() - 0.5) * 400);
-    iaCar.castShadow = true;
-    scene.add(iaCar);
-    vehiculosIA.push({ mesh: iaCar, vel: Math.random() * 0.3 + 0.2, turn: (Math.random()-0.5)*0.02 });
+// Crear un coche y aparcarlo
+function crearCoche(x, z, color) {
+    const car = new THREE.Group();
+    const body = new THREE.Mesh(new THREE.BoxGeometry(2, 1, 4), new THREE.MeshLambertMaterial({color: color}));
+    body.position.y = 0.5;
+    body.castShadow = true;
+    car.add(body);
+    car.position.set(x, 0, z);
+    scene.add(car);
+    
+    vehiculos.push({ tipo: 'coche', mesh: car, speed: 0, heading: 0 });
 }
 
-// --- 3. JUGADOR (Coche y Avión) ---
-let currentVehicle = 'car';
+// Crear un avión y aparcarlo
+function crearAvion(x, z, color) {
+    const plane = new THREE.Group();
+    const fuse = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.5, 8), new THREE.MeshLambertMaterial({color: color}));
+    const wings = new THREE.Mesh(new THREE.BoxGeometry(12, 0.2, 2), new THREE.MeshLambertMaterial({color: color}));
+    fuse.position.y = 1; wings.position.set(0, 1, 1);
+    fuse.castShadow = true; wings.castShadow = true;
+    plane.add(fuse, wings);
+    plane.position.set(x, 0, z);
+    scene.add(plane);
+    
+    vehiculos.push({ tipo: 'avion', mesh: plane, speed: 0, heading: 0, pitch: 0 });
+}
 
-// Coche (Rojo)
-const carGroup = new THREE.Group();
-const carBody = new THREE.Mesh(new THREE.BoxGeometry(2, 1, 4), new THREE.MeshLambertMaterial({color: 0xcc0000}));
-carBody.position.y = 0.5;
-carBody.castShadow = true;
-carGroup.add(carBody);
-scene.add(carGroup);
+// Generamos vehículos en el mapa
+crearCoche(10, 10, 0xcc0000); // Coche rojo cerca del jugador
+crearCoche(-20, 15, 0x00cc00); // Coche verde
+crearAvion(50, -50, 0x0000cc); // Avión azul en un "aeropuerto" improvisado
 
-// Avión (Azul) - Oculto al inicio
-const planeGroup = new THREE.Group();
-const fuselage = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.5, 8), new THREE.MeshLambertMaterial({color: 0x0000cc}));
-const wings = new THREE.Mesh(new THREE.BoxGeometry(10, 0.2, 2), new THREE.MeshLambertMaterial({color: 0x0000cc}));
-const tail = new THREE.Mesh(new THREE.BoxGeometry(3, 0.2, 1.5), new THREE.MeshLambertMaterial({color: 0x0000cc}));
-fuselage.position.y = 1;
-wings.position.set(0, 1, 1);
-tail.position.set(0, 1, -3);
-planeGroup.add(fuselage, wings, tail);
-planeGroup.position.set(0, 0, 300); // Aparece en el aeropuerto
-planeGroup.visible = false;
-scene.add(planeGroup);
+// Base del Aeropuerto (Pista)
+const pista = new THREE.Mesh(new THREE.PlaneGeometry(30, 200), new THREE.MeshLambertMaterial({color: 0x333333}));
+pista.rotation.x = -Math.PI / 2;
+pista.position.set(50, 0.1, -50);
+scene.add(pista);
 
-// --- 4. CONTROLES Y FÍSICAS REALISTAS ---
-let input = { throttle: 0, steer: 0, pitch: 0 };
-let physics = { 
-    speed: 0, heading: 0, 
-    planeSpeed: 0, altitude: 0, pitch: 0, roll: 0 
+// --- 3. ESTADO Y CONTROLES ---
+let estado = {
+    activo: 'a_pie', // 'a_pie' o índice del vehículo
+    vehiculoActual: null
 };
 
-// Joysticks
-const joyLeft = nipplejs.create({ zone: document.getElementById('joy-left'), mode: 'static', position: { left: '50%', top: '50%' }, color: 'white' });
-const joyRight = nipplejs.create({ zone: document.getElementById('joy-right'), mode: 'static', position: { left: '50%', top: '50%' }, color: 'white' });
+let input = { joyX: 0, joyY: 0, gas: 0, brake: 0 };
 
-joyLeft.on('move', (e, data) => { input.steer = -Math.cos(data.angle.radian) * (data.force > 1 ? 1 : data.force); input.pitch = Math.sin(data.angle.radian) * (data.force > 1 ? 1 : data.force); });
-joyLeft.on('end', () => { input.steer = 0; input.pitch = 0; });
-joyRight.on('move', (e, data) => { input.throttle = Math.sin(data.angle.radian) * (data.force > 1 ? 1 : data.force); });
-joyRight.on('end', () => { input.throttle = 0; });
+// Configurar Joystick Único (Izquierda)
+const joystick = nipplejs.create({ zone: document.getElementById('joy-left'), mode: 'static', position: { left: '50%', top: '50%' }, color: 'white' });
+joystick.on('move', (e, data) => {
+    // joyX: Izquierda/Derecha, joyY: Arriba/Abajo
+    input.joyX = -Math.cos(data.angle.radian) * Math.min(data.force, 1);
+    input.joyY = Math.sin(data.angle.radian) * Math.min(data.force, 1);
+});
+joystick.on('end', () => { input.joyX = 0; input.joyY = 0; });
 
-// Cambiar Vehículo
-document.getElementById('vehicle-btn').addEventListener('click', () => {
-    if (currentVehicle === 'car') {
-        currentVehicle = 'plane';
-        carGroup.visible = false;
-        planeGroup.visible = true;
-        document.getElementById('vehicle-btn').innerText = "Subir al Coche";
+// Botones de Pedales (Soporte para PC y Móvil)
+const btnGas = document.getElementById('btn-gas');
+const btnBrake = document.getElementById('btn-brake');
+
+const pressGas = () => input.gas = 1;
+const releaseGas = () => input.gas = 0;
+const pressBrake = () => input.brake = 1;
+const releaseBrake = () => input.brake = 0;
+
+btnGas.addEventListener('mousedown', pressGas); btnGas.addEventListener('touchstart', pressGas);
+window.addEventListener('mouseup', releaseGas); window.addEventListener('touchend', releaseGas);
+
+btnBrake.addEventListener('mousedown', pressBrake); btnBrake.addEventListener('touchstart', pressBrake);
+window.addEventListener('mouseup', releaseBrake); window.addEventListener('touchend', releaseBrake);
+
+// --- 4. MECÁNICA DE ENTRAR Y SALIR DE VEHÍCULOS ---
+document.getElementById('btn-action').addEventListener('click', () => {
+    if (estado.activo === 'a_pie') {
+        // Buscar el vehículo más cercano
+        let vehiculoCercano = null;
+        let distanciaMin = 10; // Distancia máxima para poder subir
+
+        vehiculos.forEach(v => {
+            let dist = player.position.distanceTo(v.mesh.position);
+            if (dist < distanciaMin) {
+                distanciaMin = dist;
+                vehiculoCercano = v;
+            }
+        });
+
+        if (vehiculoCercano) {
+            // Subirse al vehículo
+            estado.activo = 'conduciendo';
+            estado.vehiculoActual = vehiculoCercano;
+            player.visible = false; // Ocultamos al jugador
+        }
     } else {
-        currentVehicle = 'car';
-        planeGroup.visible = false;
-        carGroup.visible = true;
-        document.getElementById('vehicle-btn').innerText = "Subir al Avión";
+        // Bajarse del vehículo
+        // Ponemos al jugador al lado de la puerta izquierda
+        player.position.copy(estado.vehiculoActual.mesh.position);
+        player.position.x += Math.cos(estado.vehiculoActual.heading) * 3;
+        player.position.z -= Math.sin(estado.vehiculoActual.heading) * 3;
+        player.position.y = 1; // Altura del suelo
+        
+        player.visible = true;
+        estado.activo = 'a_pie';
+        estado.vehiculoActual = null;
     }
 });
 
-// --- 5. BUCLE DE JUEGO (ANIMACIÓN Y FÍSICAS) ---
+
+// --- 5. BUCLE PRINCIPAL Y FÍSICAS ---
+let playerHeading = 0;
+
 function animate() {
     requestAnimationFrame(animate);
+    
+    // Calcular aceleración neta (Gas - Freno)
+    let aceleracion = input.gas - input.brake;
 
-    // Físicas del Coche (Inercia y Fricción)
-    if (currentVehicle === 'car') {
-        physics.speed += input.throttle * 0.02; // Aceleración
-        physics.speed *= 0.95; // Fricción
-        if (Math.abs(physics.speed) > 0.05) {
-            physics.heading += input.steer * 0.05 * Math.sign(physics.speed);
+    if (estado.activo === 'a_pie') {
+        // Mover al jugador con el Joystick
+        if (input.joyX !== 0 || input.joyY !== 0) {
+            // Rotar al jugador hacia donde apunta el joystick
+            playerHeading = Math.atan2(-input.joyX, input.joyY);
+            player.rotation.y = playerHeading;
+            
+            // Avanzar
+            let walkSpeed = 0.15;
+            player.position.x += Math.sin(playerHeading) * walkSpeed;
+            player.position.z += Math.cos(playerHeading) * walkSpeed;
         }
+
+        // Cámara sigue al jugador (Tercera persona)
+        camera.position.x = player.position.x;
+        camera.position.y = player.position.y + 3;
+        camera.position.z = player.position.z + 8;
+        camera.lookAt(player.position);
+
+    } else if (estado.vehiculoActual) {
+        let v = estado.vehiculoActual;
         
-        carGroup.rotation.y = physics.heading;
-        carGroup.position.x += Math.sin(physics.heading) * physics.speed;
-        carGroup.position.z += Math.cos(physics.heading) * physics.speed;
+        if (v.tipo === 'coche') {
+            // Físicas de Coche (Gas/Freno + Dirección en Joystick X)
+            v.speed += aceleracion * 0.02; // Acelerar / Frenar / Reversa
+            v.speed *= 0.95; // Fricción
+            
+            if (Math.abs(v.speed) > 0.01) {
+                // Solo gira si se está moviendo
+                v.heading += input.joyX * 0.05 * Math.sign(v.speed); 
+            }
+            
+            v.mesh.rotation.y = v.heading;
+            v.mesh.position.x += Math.sin(v.heading) * v.speed;
+            v.mesh.position.z += Math.cos(v.heading) * v.speed;
 
-        // Limite Isla
-        if (Math.abs(carGroup.position.x) > mapData.mundo.limite_agua) carGroup.position.x = Math.sign(carGroup.position.x) * mapData.mundo.limite_agua;
-        if (Math.abs(carGroup.position.z) > mapData.mundo.limite_agua) carGroup.position.z = Math.sign(carGroup.position.z) * mapData.mundo.limite_agua;
+        } else if (v.tipo === 'avion') {
+            // Físicas de Avión (Gas para hélice, JoyX para giro, JoyY para morro)
+            v.speed += aceleracion * 0.05;
+            v.speed *= 0.98; // Resistencia
+            
+            v.heading += input.joyX * 0.03; // Giro (Yaw/Roll)
+            v.pitch += input.joyY * 0.03;   // Morro Arriba/Abajo (Pitch)
+            v.pitch *= 0.92; // Auto-estabilización
+            
+            v.mesh.rotation.x = -v.pitch;
+            v.mesh.rotation.y = v.heading;
+            v.mesh.rotation.z = -input.joyX * 0.5; // Inclinación visual
 
-        // Cámara sigue al coche
-        camera.position.x = carGroup.position.x - Math.sin(physics.heading) * 15;
-        camera.position.z = carGroup.position.z - Math.cos(physics.heading) * 15;
-        camera.position.y = 5;
-        camera.lookAt(carGroup.position);
-    } 
-    // Físicas de Vuelo (Sustentación, Gravedad, Cabeceo)
-    else if (currentVehicle === 'plane') {
-        physics.planeSpeed += input.throttle * 0.05;
-        physics.planeSpeed *= 0.98; // Resistencia del aire
-        
-        physics.heading += input.steer * 0.03;
-        physics.pitch += input.pitch * 0.02;
-        physics.pitch *= 0.9; // Auto-estabilización
-        planeGroup.rotation.x = -physics.pitch;
-        planeGroup.rotation.y = physics.heading;
-        planeGroup.rotation.z = -input.steer * 0.5; // Alabeo visual
-
-        // Sustentación vs Gravedad
-        const lift = physics.planeSpeed * 0.2;
-        const gravity = 0.15;
-        if (planeGroup.position.y > 0 || lift > gravity) {
-            planeGroup.position.y += (lift - gravity) + (physics.pitch * physics.planeSpeed * 0.5);
+            // Sustentación vs Gravedad
+            let sustentacion = v.speed * 0.25;
+            let gravedad = 0.2;
+            
+            if (v.mesh.position.y > 0 || sustentacion > gravedad) {
+                v.mesh.position.y += (sustentacion - gravedad) + (v.pitch * v.speed * 0.5);
+            }
+            if (v.mesh.position.y < 0) v.mesh.position.y = 0; // Tocar suelo
+            
+            v.mesh.position.x += Math.sin(v.heading) * v.speed;
+            v.mesh.position.z += Math.cos(v.heading) * v.speed;
         }
-        if (planeGroup.position.y < 0) planeGroup.position.y = 0; // Suelo
 
-        planeGroup.position.x += Math.sin(physics.heading) * physics.planeSpeed;
-        planeGroup.position.z += Math.cos(physics.heading) * physics.planeSpeed;
-
-        // Cámara sigue al avión
-        camera.position.x = planeGroup.position.x - Math.sin(physics.heading) * 20;
-        camera.position.z = planeGroup.position.z - Math.cos(physics.heading) * 20;
-        camera.position.y = planeGroup.position.y + 10;
-        camera.lookAt(planeGroup.position);
+        // Cámara sigue al vehículo
+        camera.position.x = v.mesh.position.x - Math.sin(v.heading) * 15;
+        camera.position.y = v.mesh.position.y + 5;
+        camera.position.z = v.mesh.position.z - Math.cos(v.heading) * 15;
+        camera.lookAt(v.mesh.position);
     }
-
-    // Mover Tráfico IA
-    vehiculosIA.forEach(ia => {
-        ia.mesh.rotation.y += ia.turn;
-        ia.mesh.position.x += Math.sin(ia.mesh.rotation.y) * ia.vel;
-        ia.mesh.position.z += Math.cos(ia.mesh.rotation.y) * ia.vel;
-        // Si se salen del mapa, rebotan hacia el centro
-        if (Math.abs(ia.mesh.position.x) > 400 || Math.abs(ia.mesh.position.z) > 400) {
-            ia.mesh.rotation.y += Math.PI; // Dar la vuelta
-        }
-    });
 
     renderer.render(scene, camera);
 }
