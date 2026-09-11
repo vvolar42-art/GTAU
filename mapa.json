@@ -1,0 +1,15 @@
+{
+  "mundo": {
+    "tamano": 1000,
+    "limite_agua": 480
+  },
+  "biomas": [
+    { "tipo": "ciudad", "nombre": "Los Santos Core", "x": 100, "z": 100, "radio": 80, "densidad": 50 },
+    { "tipo": "ciudad", "nombre": "San Fierro Bay", "x": -200, "z": -150, "radio": 60, "densidad": 40 },
+    { "tipo": "ciudad", "nombre": "Las Venturas Strip", "x": 250, "z": -200, "radio": 70, "densidad": 35 },
+    { "tipo": "pueblo", "nombre": "Angel Pine", "x": -300, "z": 200, "radio": 30, "densidad": 10 },
+    { "tipo": "bosque", "x": -250, "z": 100, "radio": 100, "densidad": 60 },
+    { "tipo": "desierto", "x": 200, "z": -300, "radio": 150 },
+    { "tipo": "aeropuerto", "x": 0, "z": 300, "largo": 200, "ancho": 20 }
+  ]
+}
