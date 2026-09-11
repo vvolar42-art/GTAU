@@ -3,27 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-    <title>Motor Mundo Abierto 3D - Estilo San Andreas</title>
+    <title>Motor 3D - Estilo GTA San Andreas</title>
     <style>
-        body { margin: 0; overflow: hidden; background-color: #87CEEB; user-select: none; }
+        body { margin: 0; overflow: hidden; background-color: #87CEEB; user-select: none; touch-action: none; font-family: sans-serif; }
+        
         /* Interfaz de usuario */
         #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
-        #radar { position: absolute; top: 20px; left: 20px; width: 120px; height: 120px; background: rgba(0,0,0,0.5); border: 2px solid white; border-radius: 50%; }
-        #vehicle-btn { position: absolute; top: 20px; right: 20px; padding: 15px; background: rgba(255,255,255,0.8); border: none; border-radius: 10px; font-weight: bold; pointer-events: auto; cursor: pointer; }
-        /* Joysticks */
-        #joy-left { position: absolute; bottom: 30px; left: 30px; width: 120px; height: 120px; pointer-events: auto; }
-        #joy-right { position: absolute; bottom: 30px; right: 30px; width: 120px; height: 120px; pointer-events: auto; }
+        #crosshair { position: absolute; top: 50%; left: 50%; width: 4px; height: 4px; background: white; transform: translate(-50%, -50%); border-radius: 50%; }
+        
+        /* Botones de acción */
+        .btn { position: absolute; padding: 15px 25px; background: rgba(255,255,255,0.8); border: 2px solid #333; border-radius: 10px; font-weight: bold; font-size: 16px; pointer-events: auto; cursor: pointer; text-transform: uppercase;}
+        .btn:active { background: #ccc; }
+        
+        #btn-action { top: 20px; right: 20px; background: rgba(255, 200, 0, 0.9); }
+        
+        /* Pedales */
+        #btn-gas { bottom: 100px; right: 30px; background: rgba(0, 200, 0, 0.8); color: white; padding: 25px; border-radius: 50%; }
+        #btn-brake { bottom: 20px; right: 30px; background: rgba(200, 0, 0, 0.8); color: white; padding: 25px; border-radius: 50%; }
+        
+        /* Joystick único */
+        #joy-left { position: absolute; bottom: 40px; left: 40px; width: 120px; height: 120px; pointer-events: auto; }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/nipplejs/0.10.1/nipplejs.min.js"></script>
 </head>
 <body>
     <div id="ui-layer">
-        <div id="radar"></div>
-        <button id="vehicle-btn">Subir al Avión</button>
+        <div id="crosshair"></div>
+        <button id="btn-action" class="btn">Entrar/Salir</button>
+        <button id="btn-gas" class="btn">GAS</button>
+        <button id="btn-brake" class="btn">FRENAR</button>
     </div>
     <div id="joy-left"></div>
-    <div id="joy-right"></div>
     
     <script src="main.js"></script>
 </body>
