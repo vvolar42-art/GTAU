@@ -3,26 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-    <title>Motor 3D - Estilo GTA San Andreas</title>
+    <title>Motor 3D - Mundo Abierto con Ciudad</title>
     <style>
         body { margin: 0; overflow: hidden; background-color: #87CEEB; user-select: none; touch-action: none; font-family: sans-serif; }
         
-        /* Interfaz de usuario */
         #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
-        #crosshair { position: absolute; top: 50%; left: 50%; width: 4px; height: 4px; background: white; transform: translate(-50%, -50%); border-radius: 50%; }
+        #crosshair { position: absolute; top: 50%; left: 50%; width: 6px; height: 6px; background: rgba(255,255,255,0.8); transform: translate(-50%, -50%); border-radius: 50%; border: 1px solid #000; }
         
-        /* Botones de acción */
-        .btn { position: absolute; padding: 15px 25px; background: rgba(255,255,255,0.8); border: 2px solid #333; border-radius: 10px; font-weight: bold; font-size: 16px; pointer-events: auto; cursor: pointer; text-transform: uppercase;}
-        .btn:active { background: #ccc; }
+        .btn { position: absolute; padding: 15px 25px; background: rgba(255,255,255,0.9); border: 2px solid #333; border-radius: 12px; font-weight: bold; font-size: 16px; pointer-events: auto; cursor: pointer; text-transform: uppercase; box-shadow: 0 4px 6px rgba(0,0,0,0.2); }
+        .btn:active { background: #ddd; transform: scale(0.95); }
         
-        #btn-action { top: 20px; right: 20px; background: rgba(255, 200, 0, 0.9); }
+        #btn-action { top: 20px; right: 20px; background: rgba(255, 200, 0, 0.95); }
         
-        /* Pedales */
-        #btn-gas { bottom: 100px; right: 30px; background: rgba(0, 200, 0, 0.8); color: white; padding: 25px; border-radius: 50%; }
-        #btn-brake { bottom: 20px; right: 30px; background: rgba(200, 0, 0, 0.8); color: white; padding: 25px; border-radius: 50%; }
+        #btn-gas { bottom: 110px; right: 30px; background: rgba(0, 200, 0, 0.85); color: white; padding: 25px; border-radius: 50%; width: 80px; height: 80px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+        #btn-brake { bottom: 20px; right: 30px; background: rgba(200, 0, 0, 0.85); color: white; padding: 20px; border-radius: 50%; width: 80px; height: 80px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
         
-        /* Joystick único */
-        #joy-left { position: absolute; bottom: 40px; left: 40px; width: 120px; height: 120px; pointer-events: auto; }
+        #joy-left { position: absolute; bottom: 40px; left: 40px; width: 130px; height: 130px; pointer-events: auto; }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/nipplejs/0.10.1/nipplejs.min.js"></script>
