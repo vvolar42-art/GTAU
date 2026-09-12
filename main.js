@@ -1,7 +1,7 @@
 // --- 1. CONFIGURACIÓN DEL MOTOR Y MUNDO ---
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x7ec0ee);
-scene.fog = new THREE.FogExp2(0x7ec0ee, 0.001); // Niebla ajustada para ver más lejos
+scene.fog = new THREE.FogExp2(0x7ec0ee, 0.001); 
 
 const camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 6000);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -40,11 +40,11 @@ function generarMontanas() {
     const mountainMat = new THREE.MeshStandardMaterial({ color: 0x2d4c2a, roughness: 0.95 });
     for (let i = 0; i < 70; i++) {
         let angle = (i / 70) * Math.PI * 2;
-        let radius = 2000 + Math.random() * 400; // Alrededor del mapa
+        let radius = 2000 + Math.random() * 400; 
         let x = Math.cos(angle) * radius;
         let z = Math.sin(angle) * radius;
-        let h = 400 + Math.random() * 500; // Montañas altas
-        let r = 250 + Math.random() * 150; // Bases anchas
+        let h = 400 + Math.random() * 500; 
+        let r = 250 + Math.random() * 150; 
         let mGeo = new THREE.ConeGeometry(r, h, 6);
         let mountain = new THREE.Mesh(mGeo, mountainMat);
         mountain.position.set(x, h/2, z);
@@ -74,9 +74,9 @@ function generarCiudad(centroX, centroZ, filas, columnas, tamBloque, anchoCalle)
             block.receiveShadow = true;
             scene.add(block);
 
-            let alturaEdificio = Math.floor(Math.random() * 80) + 30; // Edificios más altos
+            let alturaEdificio = Math.floor(Math.random() * 80) + 30; 
             let matEdif = buildingMaterials[Math.floor(Math.random() * buildingMaterials.length)];
-            const edifGeo = new THREE.BoxGeometry(tamBloque - 8, alturaEdificio, tamBloque - 8); // Aceras más amplias
+            const edifGeo = new THREE.BoxGeometry(tamBloque - 8, alturaEdificio, tamBloque - 8); 
             const edificio = new THREE.Mesh(edifGeo, matEdif);
             edificio.position.set(x, alturaEdificio / 2, z);
             edificio.castShadow = true;
@@ -86,11 +86,11 @@ function generarCiudad(centroX, centroZ, filas, columnas, tamBloque, anchoCalle)
     }
 }
 
-// Ciudad Principal (Más grande, calles y bloques enormes)
+// Ciudad Principal 
 generarCiudad(0, -200, 8, 8, 45, 25);
-// Ciudad Secundaria (Lejos al Este)
+// Ciudad Secundaria 
 generarCiudad(800, 400, 5, 5, 35, 18);
-// Pueblo Secundario (Lejos al Oeste)
+// Pueblo Secundario 
 generarCiudad(-900, -600, 4, 4, 40, 20);
 
 // --- 3. VEHÍCULOS Y JUGADOR ---
@@ -138,14 +138,13 @@ playerGroup.add(playerBody);
 playerGroup.position.set(0, 0, 25);
 scene.add(playerGroup);
 
-// --- 4. CONTROLES Y ESTADO (BUG DEL COCHE SOLUCIONADO) ---
+// --- 4. CONTROLES Y ESTADO ---
 let estado = { activo: 'a_pie', vehiculoActual: null };
 let input = { joyX: 0, joyY: 0, gas: 0, brake: 0 };
 
 const joystick = nipplejs.create({ zone: document.getElementById('joy-left'), mode: 'static', position: { left: '50%', top: '50%' }, color: 'white' });
 
 joystick.on('move', (e, data) => {
-    // Calculamos X e Y estándar de matemáticas para precisión rotacional
     input.joyX = Math.cos(data.angle.radian) * Math.min(data.force, 1);
     input.joyY = Math.sin(data.angle.radian) * Math.min(data.force, 1);
 });
@@ -154,7 +153,6 @@ joystick.on('end', () => { input.joyX = 0; input.joyY = 0; });
 const btnGas = document.getElementById('btn-gas');
 const btnBrake = document.getElementById('btn-brake');
 
-// Aislamos los eventos directamente en los botones para que el joystick no los cancele (Solución Bug)
 const pressGas = (e) => { e.preventDefault(); input.gas = 1; };
 const releaseGas = (e) => { e.preventDefault(); input.gas = 0; };
 const pressBrake = (e) => { e.preventDefault(); input.brake = 1; };
@@ -196,15 +194,12 @@ function animate() {
     let aceleracion = input.gas - input.brake;
 
     if (estado.activo === 'a_pie') {
-        // ROTACIÓN CONTINUA (TIPO TANQUE):
-        // Si el joystick va a los lados, rotamos sin límite.
         if (input.joyX !== 0) {
             playerHeading -= input.joyX * 0.05;
             playerGroup.rotation.y = playerHeading;
         }
-        // AVANZAR / RETROCEDER CONTINUO:
         if (input.joyY !== 0) {
-            let walkSpeed = input.joyY * 0.18; // JoyY arriba es positivo -> avanza
+            let walkSpeed = input.joyY * 0.18; 
             playerGroup.position.x += Math.sin(playerHeading) * walkSpeed;
             playerGroup.position.z += Math.cos(playerHeading) * walkSpeed;
         }
@@ -224,7 +219,6 @@ function animate() {
             if (v.speed > 1.3) v.speed = 1.3;
             if (v.speed < -0.5) v.speed = -0.5;
 
-            // Gira en relación al joystick X de forma continua
             if (Math.abs(v.speed) > 0.01 && input.joyX !== 0) {
                 v.heading -= input.joyX * 0.05 * Math.sign(v.speed); 
             }
@@ -238,35 +232,49 @@ function animate() {
             camera.position.z = v.mesh.position.z - Math.cos(v.heading) * 14;
             camera.lookAt(v.mesh.position.x, v.mesh.position.y + 1, v.mesh.position.z);
 
+        // ===== INICIO DE CAMBIOS DEL AVIÓN =====
         } else if (v.tipo === 'avion') {
+            // Físicas base de aceleración
             v.speed += aceleracion * 0.04;
-            v.speed *= 0.98;
-            if (v.speed > 2.5) v.speed = 2.5; if (v.speed < 0) v.speed = 0;
+            v.speed *= 0.98; // Fricción del aire
+            if (v.speed > 2.5) v.speed = 2.5; 
+            if (v.speed < 0) v.speed = 0;
             
-            v.heading -= input.joyX * 0.04; 
-            v.pitch += input.joyY * 0.045;   
-            v.pitch *= 0.95;
+            // COPIAR EL JOYSTICK: Rotación continua e ininterrumpida
+            if (input.joyX !== 0) {
+                v.heading -= input.joyX * 0.05; // Gira a los lados constantemente
+            }
+            if (input.joyY !== 0) {
+                v.pitch += input.joyY * 0.05; // Cabecea arriba/abajo constantemente
+            }
             
+            v.pitch *= 0.92; // Retorno suave al centro si sueltas el joystick
+            
+            // Aplicar rotaciones
             v.mesh.rotation.x = -v.pitch;
             v.mesh.rotation.y = v.heading;
-            v.mesh.rotation.z = input.joyX * 0.6;
+            v.mesh.rotation.z = input.joyX * 0.6; // Alabeo (inclinación lateral visual)
 
+            // Físicas de vuelo (sustentación y gravedad)
             let sustentacion = v.speed * 0.35;
             let gravedad = 0.18;
             
             if (v.mesh.position.y > 0 || sustentacion > gravedad) {
                 v.mesh.position.y += (sustentacion - gravedad) + (v.pitch * v.speed * 0.8);
             }
-            if (v.mesh.position.y < 0) v.mesh.position.y = 0;
+            if (v.mesh.position.y < 0) v.mesh.position.y = 0; // Suelo
             
+            // Movimiento espacial
             v.mesh.position.x += Math.sin(v.heading) * v.speed;
             v.mesh.position.z += Math.cos(v.heading) * v.speed;
 
+            // Seguimiento de cámara
             camera.position.x = v.mesh.position.x - Math.sin(v.heading) * 22;
             camera.position.y = v.mesh.position.y + 7;
             camera.position.z = v.mesh.position.z - Math.cos(v.heading) * 22;
             camera.lookAt(v.mesh.position.x, v.mesh.position.y + 1, v.mesh.position.z);
         }
+        // ===== FIN DE CAMBIOS DEL AVIÓN =====
     }
     renderer.render(scene, camera);
 }
